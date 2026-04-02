@@ -11,19 +11,14 @@ set min refinement    = 3
 set mesh adaptivity   = true
 set remeshing period  = 800
 
-set time step = 5e-4
+set time step = 1e-3
 set number steps = 100000
 
 subsection output
   set condition = EQUAL_SPACING
-  set number = 500
+  set number = 50
   set list = 1
   set file type = pvtu
-end
-
-subsection boundary conditions: 0
-  set variables = x2
-  set conditions = Natural, Natural, Natural, Dirichlet
 end
 
 subsection refinement criterion: 0
@@ -38,5 +33,5 @@ subsection refinement criterion: 1
   set type              = gradient
 
   set gradient lower bound = 0.0001
-  set variables         = x1, x2
+  set variables         = x1
 end
