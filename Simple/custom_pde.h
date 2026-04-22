@@ -52,12 +52,12 @@ public:
    */
   explicit CustomPDE(const UserInputParameters<dim> &_user_inputs, PhaseFieldTools<dim> &_pf_tools)
       : PDEOperatorBase<dim, degree, number>(_user_inputs, _pf_tools)
-  // D1(_user_inputs.user_constants.get_model_constant_double("D1")),
-  // D2(_user_inputs.user_constants.get_model_constant_double("D2")),
-  // epsilon_denom(_user_inputs.user_constants.get_model_constant_double("epsilon_denom")),
-  // deltaG(_user_inputs.user_constants.get_model_constant_double("deltaG")),
-  // dw_coeff(_user_inputs.user_constants.get_model_constant_double("dw_coeff")),
-  // grad_coeff(_user_inputs.user_constants.get_model_constant_double("grad_coeff"))
+  // D1(_user_inputs.user_constants.get_double("D1")),
+  // D2(_user_inputs.user_constants.get_double("D2")),
+  // epsilon_denom(_user_inputs.user_constants.get_double("epsilon_denom")),
+  // deltaG(_user_inputs.user_constants.get_double("deltaG")),
+  // dw_coeff(_user_inputs.user_constants.get_double("dw_coeff")),
+  // grad_coeff(_user_inputs.user_constants.get_double("grad_coeff"))
   {}
 
 private:
@@ -72,26 +72,33 @@ private:
     const dealii::Tensor<1, dim> &mesh_size =
         get_user_inputs().spatial_discretization.rectangular_mesh.size;
     const dealii::Point<dim>      center(mesh_size / 2.0);
-    const dealii::Point<dim>      p(point - center);
-    [[maybe_unused]] const double x = (dim > 0) ? p[0] : 0.;
-    [[maybe_unused]] const double y = (dim > 1) ? p[1] : 0.;
-    [[maybe_unused]] const double z = (dim > 2) ? p[2] : 0.;
+    const dealii::Point<dim>      p(point);
+    [[maybe_unused]] const double x  = (dim > 0) ? p[0] : 0.;
+    [[maybe_unused]] const double y  = (dim > 1) ? p[1] : 0.;
+    [[maybe_unused]] const double z  = (dim > 2) ? p[2] : 0.;
+    [[maybe_unused]] const double lx = (dim > 0) ? mesh_size[0] : 0.;
+    [[maybe_unused]] const double ly = (dim > 1) ? mesh_size[1] : 0.;
+    [[maybe_unused]] const double lz = (dim > 2) ? mesh_size[2] : 0.;
     // ===========================================================================
     // FUNCTION FOR INITIAL CONDITIONS
     // ===========================================================================
+    using std::cos;
     using std::max;
     using std::min;
     using std::sin;
-    using std::numbers::pi;
+    using std::sqrt;
+    constexpr double pi  = 3.14159;
+    constexpr double tau = 2 * pi;
 
     if (index == 0)
       {
-        double y    = point[1];
-        double x    = point[0];
-        double ys   = (0.5 * (mesh_size[1] * 0.75 - y +
-                            std::sin(2.0 * 3.14 * (2.845 * x + 1.0) / mesh_size[0]) * 2.0 +
-                            std::sin(2.0 * 3.14 * (7.123 * x) / mesh_size[0]) * 1.0));
-        double flat = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, std::sqrt(2.0) * ys / l_int))));
+        double y_shift =
+            (sin(tau * (2.84 * x + 1.0) / lx) * 2.0 + sin(tau * (7.12 * x) / lx) * 1.0) +
+            ((dim < 3) ? 1.0
+                       : (sin(1 + tau * (2.71 * z + 1.0) / lz) * 2.0 +
+                          sin(2 + tau * (7.18 * z) / lz) * 1.0));
+        double y_shifted = 0.5 * (y - ly * 0.75 - y_shift);
+        double flat      = interface(-y_shifted);
 
         scalar_value = max(min(flat, 1.0 - 1e-4), 1e-4);
         return;
@@ -196,6 +203,20 @@ private:
     num top = max(val + dvaldt * dt, num(upper));
     num bot = min(val + dvaldt * dt, num(lower));
     dvaldt  = (dvaldt * dt + (upper - top - (bot - lower))) / dt;
+  }
+
+  /**
+   *@brief return the double obstacle interface function
+   */
+  template <typename real>
+  const real
+  interface(const real &x) const
+  {
+    using std::max;
+    using std::min;
+    using std::sin;
+    constexpr double pi = 3.14159265358979323846;
+    return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / l_int))));
   }
 };
 

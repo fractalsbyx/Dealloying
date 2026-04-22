@@ -23,7 +23,7 @@ main(int argc, char *argv[])
   // input file
   ParseCMDOptions cli_options(argc, argv);
 
-  constexpr unsigned int dim    = 2;
+  constexpr unsigned int dim    = 3;
   constexpr unsigned int degree = 1;
 
   std::vector<FieldAttributes> fields = {FieldAttributes("n"),   //
