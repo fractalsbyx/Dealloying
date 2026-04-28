@@ -2,15 +2,15 @@ subsection Rectangular mesh
   set x size = 40.0
   set y size = 40.0
   set z size = 40.0
-  set periodic x = false
+  set periodic x = true
   set periodic y = false
-  set periodic z = false
+  set periodic z = true
 end
 
 set global refinement = 7
 set max refinement    = 7
 set min refinement    = 3
-set mesh adaptivity   = true
+set mesh adaptivity   = false
 set remeshing period  = 800
 
 set time step = 1e-3
