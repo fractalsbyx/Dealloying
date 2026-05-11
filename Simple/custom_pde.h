@@ -40,9 +40,9 @@ public:
   number D1            = 1.0;  // nm^2/s
   number D2            = 50.0;   // nm^2/s
   number Vm            = 7.0e-6*1e27; // nm^3/mol
-  number deltaG0       = -0.5*RT;  // J
+  number deltaG0       = -1.0*RT;  // J
   number j0            = 0.01*1e-18; // mol/s/nm^2 // desired: 0.1
-  number l_int         = 2.0;   // nm
+  number l_int         = 1.0;   // nm
   number gamma         = 2.0*1e-18;   // J/nm^2
 
   /**
@@ -81,13 +81,15 @@ private:
     using std::tanh;
     using std::sqrt;
     constexpr double pi  = 3.14159265359;
-    constexpr double tau = 2 * pi;
+    constexpr double amplitude  = 0.25;
 
     if (index == 0)
       {
         double y_shift =
-            (sin(tau * (2.84 * x + 1.0) / lx) * 0.5 + sin(tau * (7.12 * x) / lx) * 0.25)
-            * 0.5*(1.0 + tanh((x - lx * 0.04) / (lx * 0.04)))*0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
+            ( sin( 4.0*pi * (x/lx + 0.28)) * amplitude
+             + sin(8.0*pi * (x/lx + 0.)) * amplitude)
+            * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
+            * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
      
      //       ((dim < 3) ? 1.0
      //                  : (sin(1 + tau * (2.71 * z + 1.0) / lz) * 2.0 +
@@ -105,7 +107,7 @@ private:
       }
     if (index == 2)
       {
-        scalar_value = 0.2;
+        scalar_value = 0.05;
         return;
       }
     if (index == 3)

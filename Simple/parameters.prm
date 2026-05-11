@@ -1,6 +1,6 @@
 subsection Rectangular mesh
-  set x size = 48
-  set y size = 48
+  set x size = 24
+  set y size = 24
   set z size = 100.0
   set periodic x = false
   set periodic y = false
@@ -13,7 +13,7 @@ set min refinement    = 3
 set mesh adaptivity   = false
 set remeshing period  = 800
 
-set time step = 5e-6
+set time step = 1e-6
 set number steps = 40000000
 
 set read initial conditions from file = false
