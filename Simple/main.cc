@@ -23,27 +23,27 @@ main(int argc, char *argv[])
   // input file
   ParseCMDOptions cli_options(argc, argv);
 
-  constexpr unsigned int dim    = 3;
+  constexpr unsigned int dim    = 2;
   constexpr unsigned int degree = 1;
 
   std::vector<FieldAttributes> fields = {FieldAttributes("n"),   //
                                          FieldAttributes("x1"),  //
                                          FieldAttributes("x2"),  //
                                          FieldAttributes("rxn"), //
-                                         FieldAttributes("rxn_mu")};
+                                         FieldAttributes("deltaG")};
 
   SolveBlock main_fields(0, Explicit, Initialized, {0, 1, 2});
   main_fields.dependencies_rhs =
       make_dependency_set(fields, {"old_1(n)", "old_1(x1)", "old_1(x2)", "grad(old_1(n))",
-                                   "grad(old_1(x1))", "grad(old_1(x2))", "old_1(rxn)"});
+                                   "grad(old_1(x1))", "grad(old_1(x2))", "old_1(rxn)"});                                         
 
-  SolveBlock potential(1, Explicit, Uninitialized, {4});
-  potential.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2"});
+  SolveBlock deltaG(1, Explicit, Uninitialized, {4});
+  deltaG.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2"});
 
-  SolveBlock rxn(2, Explicit, Initialized, {3});
-  rxn.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "rxn_mu"});
+  SolveBlock rxn(2, Explicit, Uninitialized, {3});
+  rxn.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "deltaG"});
 
-  std::vector<SolveBlock> solve_blocks({main_fields, potential, rxn});
+  std::vector<SolveBlock> solve_blocks({main_fields, deltaG, rxn});
 
   UserInputParameters<dim>       user_inputs(cli_options.get_parameters_filename());
   PhaseFieldTools<dim>           pf_tools;

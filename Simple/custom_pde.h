@@ -36,28 +36,20 @@ public:
   using PDEOperatorBase<dim, degree, number>::get_user_inputs;
   using PDEOperatorBase<dim, degree, number>::get_pf_tools;
 
-  number D1            = 0.02;
-  number D2            = 1.0;
-  number deltaG        = 1.0;
-  number alpha         = 0.5;
-  number k0            = 1.0;
-  number l_int         = 4.0;
-  number epsilon_denom = 1e-5;
-  number sigma         = 2.0;
-  number dw_coeff      = sigma * 4.0 / l_int;
-  number grad_coeff    = sigma * 4.0 * l_int / (3.14159 * 3.14159);
+  number RT            = 1073*8.314; // J
+  number D1            = 1.0;  // nm^2/s
+  number D2            = 50.0;   // nm^2/s
+  number Vm            = 7.0e-6*1e27; // nm^3/mol
+  number deltaG0       = -0.5*RT;  // J
+  number j0            = 0.01*1e-18; // mol/s/nm^2 // desired: 0.1
+  number l_int         = 2.0;   // nm
+  number gamma         = 2.0*1e-18;   // J/nm^2
 
   /**
    * @brief Constructor.
    */
   explicit CustomPDE(const UserInputParameters<dim> &_user_inputs, PhaseFieldTools<dim> &_pf_tools)
       : PDEOperatorBase<dim, degree, number>(_user_inputs, _pf_tools)
-  // D1(_user_inputs.user_constants.get_double("D1")),
-  // D2(_user_inputs.user_constants.get_double("D2")),
-  // epsilon_denom(_user_inputs.user_constants.get_double("epsilon_denom")),
-  // deltaG(_user_inputs.user_constants.get_double("deltaG")),
-  // dw_coeff(_user_inputs.user_constants.get_double("dw_coeff")),
-  // grad_coeff(_user_inputs.user_constants.get_double("grad_coeff"))
   {}
 
 private:
@@ -86,18 +78,21 @@ private:
     using std::max;
     using std::min;
     using std::sin;
+    using std::tanh;
     using std::sqrt;
-    constexpr double pi  = 3.14159;
+    constexpr double pi  = 3.14159265359;
     constexpr double tau = 2 * pi;
 
     if (index == 0)
       {
         double y_shift =
-            (sin(tau * (2.84 * x + 1.0) / lx) * 2.0 + sin(tau * (7.12 * x) / lx) * 1.0) +
-            ((dim < 3) ? 1.0
-                       : (sin(1 + tau * (2.71 * z + 1.0) / lz) * 2.0 +
-                          sin(2 + tau * (7.18 * z) / lz) * 1.0));
-        double y_shifted = 0.5 * (y - ly * 0.75 - y_shift);
+            (sin(tau * (2.84 * x + 1.0) / lx) * 0.5 + sin(tau * (7.12 * x) / lx) * 0.25)
+            * 0.5*(1.0 + tanh((x - lx * 0.04) / (lx * 0.04)))*0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
+     
+     //       ((dim < 3) ? 1.0
+     //                  : (sin(1 + tau * (2.71 * z + 1.0) / lz) * 2.0 +
+     //                     sin(2 + tau * (7.18 * z) / lz) * 1.0));
+        double y_shifted = (y - ly * 0.9 - y_shift);
         double flat      = interface(-y_shifted);
 
         scalar_value = max(min(flat, 1.0 - 1e-4), 1e-4);
@@ -110,7 +105,7 @@ private:
       }
     if (index == 2)
       {
-        scalar_value = 0.05;
+        scalar_value = 0.2;
         return;
       }
     if (index == 3)
@@ -135,10 +130,10 @@ private:
               [[maybe_unused]] const SimulationTimer               &sim_timer,
               [[maybe_unused]] unsigned int                         solve_block_id) const override
   {
+    constexpr double pi = 3.14159265359;
     const number dt = sim_timer.get_timestep();
     if (solve_block_id == 0) // n, x
       {
-
         const ScalarValue n       = variable_list.template get_value<Scalar, OldOne>(0);
         const ScalarGrad  n_grad  = variable_list.template get_gradient<Scalar, OldOne>(0);
         const ScalarValue x1      = variable_list.template get_value<Scalar, OldOne>(1);
@@ -152,29 +147,26 @@ private:
 
         // x1
         variable_list.set_value_term(1,
-                                     x1 + dt * (D1 * x1_grad * n_grad / (n + epsilon_denom) + rxn));
+                                     x1 + dt * (D1 * x1_grad * n_grad / n + rxn));
         variable_list.set_gradient_term(1, dt * (-D1 * x1_grad));
 
         // x2
         variable_list.set_value_term(
-            2, x2 + dt * (-D2 * x2_grad * n_grad / (1.0 - n + epsilon_denom) - rxn));
+            2, x2 + dt * (-D2 * x2_grad * n_grad / (1.0 - n) - rxn));
         variable_list.set_gradient_term(2, dt * (-D2 * x2_grad));
       }
-    else if (solve_block_id == 1) // potential
+    else if (solve_block_id == 1) // delta G
       {
-
         const ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
         const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(1);
-        // const ScalarGrad  x1_grad = variable_list.template get_gradient<Scalar, Current>(1);
-        const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
-        // const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, Current>(2);
+        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(2);
 
-        // rxn_mu
-        const ScalarValue rxn_mu_val =
-            std::log(x1) - std::log(x2) + deltaG + dw_coeff * (1.0 - 2.0 * n);
-        variable_list.set_value_term(4, rxn_mu_val);
-        variable_list.set_gradient_term(4, n_grad * grad_coeff);
+        // deltaG
+        const ScalarValue deltaG_val =
+            (std::log(x2/x1)) * RT + deltaG0 + 4.0*gamma*Vm/l_int * (2.0 * n - 1.0);
+        variable_list.set_value_term(4, deltaG_val);
+        variable_list.set_gradient_term(4, -n_grad * 8.0*gamma*Vm*l_int/(pi*pi));
       }
     else if (solve_block_id == 2) // rxn
       {
@@ -182,11 +174,9 @@ private:
         constexpr double lower(1e-4);
         ScalarValue      n      = variable_list.template get_value<Scalar, Current>(0);
         ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        // ScalarValue      x1      = variable_list.template get_value<Scalar, Current>(1);
-        // ScalarValue      x2      = variable_list.template get_value<Scalar, Current>(2);
-        ScalarValue rxn_mu = variable_list.template get_value<Scalar, Current>(4);
+        ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
 
-        ScalarValue rxn_val = -n_grad.norm_square() * rxn_mu;
+        ScalarValue rxn_val = -n_grad.norm_square() * Vm * j0 * (-deltaG/RT);
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
       }
@@ -214,8 +204,8 @@ private:
   {
     using std::max;
     using std::min;
-    using std::sin;
-    constexpr double pi = 3.14159265358979323846;
+    using std::sin; 
+    constexpr double pi = 3.14159265359;
     return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / l_int))));
   }
 };

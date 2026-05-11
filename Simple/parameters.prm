@@ -1,22 +1,22 @@
 subsection Rectangular mesh
-  set x size = 40.0
-  set y size = 40.0
-  set z size = 40.0
-  set periodic x = true
+  set x size = 48
+  set y size = 48
+  set z size = 100.0
+  set periodic x = false
   set periodic y = false
-  set periodic z = true
+  set periodic z = false
 end
 
-set global refinement = 7
-set max refinement    = 7
+set global refinement = 8
+set max refinement    = 8
 set min refinement    = 3
 set mesh adaptivity   = false
 set remeshing period  = 800
 
-set time step = 1e-3
-set number steps = 1000000
+set time step = 5e-6
+set number steps = 40000000
 
-set read initial conditions from file = true
+set read initial conditions from file = false
 
 subsection initial condition file 1
   set file name = dealloy_phi.in
@@ -30,7 +30,7 @@ end
 
 subsection output
   set condition = LOG_SPACING
-  set number = 40
+  set number = 80
   set file type = vtu
 end
 
