@@ -36,9 +36,9 @@ public:
   using PDEOperatorBase<dim, degree, number>::get_user_inputs;
   using PDEOperatorBase<dim, degree, number>::get_pf_tools;
 
-  number RT            = 1073*8.314; // J
+  number RT            = 1073.15*8.314; // J
   number D1            = 1.0;  // nm^2/s
-  number D2            = 50.0;   // nm^2/s
+  number D2            = 100.0;   // nm^2/s
   number Vm            = 7.0e-6*1e27; // nm^3/mol
   number deltaG0       = -1.0*RT;  // J
   number j0            = 0.01*1e-18; // mol/s/nm^2 // desired: 0.1
@@ -81,13 +81,14 @@ private:
     using std::tanh;
     using std::sqrt;
     constexpr double pi  = 3.14159265359;
-    constexpr double amplitude  = 0.25;
+    constexpr double amplitude  = 0.3;
 
     if (index == 0)
       {
         double y_shift =
-            ( sin( 4.0*pi * (x/lx + 0.28)) * amplitude
-             + sin(8.0*pi * (x/lx + 0.)) * amplitude)
+            (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
+             + sin( 9.0*pi * (x/lx + 0.)) * amplitude
+	     + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
             * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
             * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
      
