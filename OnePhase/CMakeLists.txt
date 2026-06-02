@@ -56,6 +56,6 @@ set_target_properties(
 target_link_libraries(
   main
   PRIVATE
-    $<$<CONFIG:Debug>:PRISMS-PF::prisms_pf_debug>
-    $<$<CONFIG:Release>:PRISMS-PF::prisms_pf_release>
+    $<$<CONFIG:Debug>:PRISMS-PF::prisms_pf>
+    $<$<CONFIG:Release>:PRISMS-PF::prisms_pf>
 )

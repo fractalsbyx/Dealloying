@@ -26,23 +26,28 @@ main(int argc, char *argv[])
   constexpr unsigned int dim    = 2;
   constexpr unsigned int degree = 1;
 
-  std::vector<FieldAttributes> fields = {FieldAttributes("n"),   //
-                                         FieldAttributes("x1"),  //
-                                         FieldAttributes("x2"),  //
-                                         FieldAttributes("rxn"), //
-                                         FieldAttributes("rxn_mu")};
+  std::vector<FieldAttributes> fields = {FieldAttributes("n"),
+                                         FieldAttributes("x1"),
+                                         FieldAttributes("rxn_mu"), 
+                                         FieldAttributes("rxn"),
+                                         FieldAttributes("x1_stage")
+                                         };
 
-  SolveBlock main_fields(0, Explicit, Initialized, {0, 1, 2});
+  SolveBlock main_fields(0, Explicit, Initialized, {0, 1});
   main_fields.dependencies_rhs = make_dependency_set(
-      fields, {"old_1(n)", "old_1(x1)", "grad(old_1(n))", "grad(old_1(x1))", "old_1(rxn)"});
-
-  SolveBlock potential(1, Explicit, Uninitialized, {4});
+      fields, {"old_1(n)", "old_1(x1_stage)", "old_1(rxn)", "old_1(x1)"});
+      
+  SolveBlock potential(1, Explicit, Uninitialized, {2});
   potential.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1"});
 
-  SolveBlock rxn(2, Explicit, Initialized, {3});
+  SolveBlock rxn(2, Explicit, Uninitialized, {3});
   rxn.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "rxn_mu"});
 
-  std::vector<SolveBlock> solve_blocks({main_fields, potential, rxn});
+  SolveBlock x1_stage(3, Linear, Uninitialized, {4});
+  x1_stage.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "grad(x1)", "rxn"});
+  x1_stage.dependencies_lhs = make_dependency_set(fields, {"lhs(x1_stage)", "grad(lhs(x1_stage))", "n", "grad(n)"});
+
+  std::vector<SolveBlock> solve_blocks({main_fields, potential, rxn, x1_stage});
 
   UserInputParameters<dim>       user_inputs(cli_options.get_parameters_filename());
   PhaseFieldTools<dim>           pf_tools;
