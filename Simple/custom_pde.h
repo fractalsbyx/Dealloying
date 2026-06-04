@@ -150,12 +150,12 @@ private:
 
         // x1
         variable_list.set_value_term(1,
-                                     x1 + dt * (D1 * x1_grad * n_grad / n + rxn));
+                                     x1 + dt * (D1 * x1_grad * n_grad + rxn)/ n);
         variable_list.set_gradient_term(1, dt * (-D1 * x1_grad));
 
         // x2
         variable_list.set_value_term(
-            2, x2 + dt * (-D2 * x2_grad * n_grad / (1.0 - n) - rxn));
+            2, x2 + dt * (-D2 * x2_grad * n_grad - rxn )/(1.0 - n));
         variable_list.set_gradient_term(2, dt * (-D2 * x2_grad));
       }
     else if (solve_block_id == 1) // delta G

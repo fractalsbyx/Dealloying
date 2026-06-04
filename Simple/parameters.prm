@@ -10,11 +10,11 @@ end
 set global refinement = 9
 set mesh adaptivity   = false
 
-set time step = 5e-7
-set number steps = 200000000
+set time step = 5e-8
+set number steps = 100000000
 
 subsection output
-  set condition = EQUAL_SPACING
+  set condition = LOG_SPACING
   set number = 200
   set file type = vtu
 end
