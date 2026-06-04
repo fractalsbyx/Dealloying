@@ -141,14 +141,16 @@ private:
         const ScalarValue n       = variable_list.template get_value<Scalar, OldOne>(0);
         const ScalarGrad  n_grad  = variable_list.template get_gradient<Scalar, OldOne>(0);
         const ScalarValue x1      = variable_list.template get_value<Scalar, OldOne>(1);
+        const ScalarGrad  x1_grad = variable_list.template get_gradient<Scalar, OldOne>(1);
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
-        const ScalarValue x1_stage = variable_list.template get_value<Scalar, OldOne>(4);
 
         // n
         variable_list.set_value_term(0, n + dt * rxn);
 
         // x1
-        variable_list.set_value_term(1, x1 + dt * x1_stage);
+        variable_list.set_value_term(1,
+                                     x1 + dt * (D1 * x1_grad * n_grad / n + rxn / n));
+        variable_list.set_gradient_term(1, dt * (-D1 * x1_grad));
       }
     else if (solve_block_id == 1) // potential
       {
@@ -160,49 +162,21 @@ private:
         // rxn_mu
         const ScalarValue deltaG_val =
             (std::log(x2/x1)) * RT + deltaG0 + 4.0*gamma*Vm/l_int * (2.0 * n - 1.0);
-        variable_list.set_value_term(2, deltaG_val);
-        variable_list.set_gradient_term(2, -n_grad * 8.0*gamma*Vm*l_int/(pi*pi));
+        variable_list.set_value_term(4, deltaG_val);
+        variable_list.set_gradient_term(4, -n_grad * 8.0*gamma*Vm*l_int/(pi*pi));
       }
     else if (solve_block_id == 2) // rxn
       {
         constexpr double upper(1.0 - 1e-4);
         constexpr double lower(1e-4);
-        const ScalarValue      n      = variable_list.template get_value<Scalar, Current>(0);
-        const ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        const ScalarValue deltaG = variable_list.template get_value<Scalar, Current>(2);
+        ScalarValue      n      = variable_list.template get_value<Scalar, Current>(0);
+        ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
+
+        ScalarValue deltaG = variable_list.template get_value<Scalar, Current>(4);
 
         ScalarValue rxn_val = -n_grad.norm_square() * Vm * j0 * (-deltaG/RT);
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
-      }
-    else if (solve_block_id == 3) // x1_stage
-      {
-        const ScalarValue n       = variable_list.template get_value<Scalar, Current>(0);
-        const ScalarGrad  n_grad  = variable_list.template get_gradient<Scalar, Current>(0);
-        const ScalarValue x1      = variable_list.template get_value<Scalar, Current>(1);
-        const ScalarGrad  x1_grad = variable_list.template get_gradient<Scalar, Current>(1);
-        const ScalarValue rxn = variable_list.template get_value<Scalar, Current>(3);
-
-        // x1
-        variable_list.set_value_term(4, dt * (D1 * x1_grad * n_grad / n + rxn));
-        variable_list.set_gradient_term(4, dt * (-D1 * x1_grad));
-      }
-  }
-
-  void
-  compute_lhs([[maybe_unused]] FieldContainer<dim, degree, number> &variable_list,
-              [[maybe_unused]] const SimulationTimer               &sim_timer,
-              [[maybe_unused]] unsigned int solve_block_id) const override
-  {
-    if (solve_block_id == 3) // linear lhs
-      {
-        const number dt = sim_timer.get_timestep();
-        const ScalarValue n       = variable_list.template get_value<Scalar, Current>(0);
-        const ScalarGrad  n_grad  = variable_list.template get_gradient<Scalar, Current>(0);
-        const ScalarValue x1_stage      = variable_list.template get_value<Scalar, LHS>(4);
-        const ScalarGrad  x1_stage_grad = variable_list.template get_gradient<Scalar, LHS>(4);
-        variable_list.set_value_term(4, x1_stage - dt * (D1 * x1_stage_grad * n_grad / n));
-        variable_list.set_gradient_term(4, -dt * (-D1 * x1_stage_grad));
       }
   }
 

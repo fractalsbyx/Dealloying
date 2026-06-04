@@ -10,7 +10,7 @@ end
 set global refinement = 8
 set mesh adaptivity   = false
 
-set time step = 5e-6
+set time step = 5e-8
 set number steps = 2000000
 
 subsection output
