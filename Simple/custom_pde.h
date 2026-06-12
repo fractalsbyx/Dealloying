@@ -38,18 +38,23 @@ public:
 
   number RT            = 1073.15*8.314; // J
   number D1            = 1.0;  // nm^2/s
-  number D2            = 100.0;   // nm^2/s
-  number Vm            = 7.0e-6*1e27; // nm^3/mol
-  number deltaG0       = -1.0*RT;  // J
-  number j0            = 0.01*1e-18; // mol/s/nm^2 // desired: 0.1
-  number l_int         = 1.0;   // nm
-  number gamma         = 2.0*1e-18;   // J/nm^2
+ // number D2            = 10.0;   // nm^2/s
+ // number Vm            = 6.6e-6*1e27; // nm^3/mol
+ // number deltaG0       = -4.0*RT;  // J
+  number Vmj0          = 6.6e-3*3.0; // (6.6e-6*1e27)*(3e-6*1e-18) mol/s/nm^2
+ // number l_int         = 4.0;   // nm
+  number Vmgamma       = 2.0*6.6e3;   // (2.0*1e-18*6.6e-6*1e27) J/nm^2 
 
   /**
    * @brief Constructor.
    */
   explicit CustomPDE(const UserInputParameters<dim> &_user_inputs, PhaseFieldTools<dim> &_pf_tools)
       : PDEOperatorBase<dim, degree, number>(_user_inputs, _pf_tools)
+   //   , m_well(get_user_inputs().user_constants.get_double("m_well"))
+   //   , kappa(get_user_inputs().user_constants.get_double("kappa"))
+      , deltaG0(get_user_inputs().user_constants.get_double("deltaG0"))
+      , D2(get_user_inputs().user_constants.get_double("D2"))
+      , l_int(get_user_inputs().user_constants.get_double("l_int"))
   {}
 
 private:
@@ -80,26 +85,45 @@ private:
     using std::sin;
     using std::tanh;
     using std::sqrt;
-    constexpr double pi  = 3.14159265359;
-    constexpr double amplitude  = 0.3;
-
+    
+    bool disk_IC = false;
+    bool sine_IC = false;
+    bool pseudo_1D = true;
     if (index == 0)
       {
-        double y_shift =
-            (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
-             + sin( 9.0*pi * (x/lx + 0.)) * amplitude
-	     + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
-            * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
-            * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
-     
-     //       ((dim < 3) ? 1.0
-     //                  : (sin(1 + tau * (2.71 * z + 1.0) / lz) * 2.0 +
-     //                     sin(2 + tau * (7.18 * z) / lz) * 1.0));
-        double y_shifted = (y - ly * 0.9 - y_shift);
-        double flat      = interface(-y_shifted);
+        if (pseudo_1D)
+          {
+            double dist = x - lx/2.0;
+            double phi = interface(dist);
+            scalar_value = max(min(phi, 1.0 - 1e-5), 1e-5);
+            return;
+          }
+        if (!sine_IC)
+          {
+            double radius = lx * 0.25;
+            double dist = std::sqrt((x - center[0]) * (x - center[0]) +
+                                    (y - center[1]) * (y - center[1]) +
+                                    (z - center[2]) * (z - center[2]));
+            double phi = interface(dist - radius);
+            scalar_value = max(min(phi, 1.0 - 1e-5), 1e-5);
+            return;
+          }
+        else
+          {
+            constexpr double pi  = 3.14159265359;
+            constexpr double amplitude  = 0.3;
+            double y_shift =
+                (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
+                + sin( 9.0*pi * (x/lx + 0.)) * amplitude
+          + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
+                * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
+                * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
+            double y_shifted = (y - ly * 0.9 - y_shift);
+            double phi      = interface(-y_shifted);
 
-        scalar_value = max(min(flat, 1.0 - 1e-4), 1e-4);
-        return;
+            scalar_value = max(min(phi, 1.0 - 1e-5), 1e-5);
+            return;
+          }
       }
     if (index == 1)
       {
@@ -108,7 +132,7 @@ private:
       }
     if (index == 2)
       {
-        scalar_value = 0.05;
+        scalar_value = 0.02;
         return;
       }
     if (index == 3)
@@ -167,19 +191,19 @@ private:
 
         // deltaG
         const ScalarValue deltaG_val =
-            (std::log(x2/x1)) * RT + deltaG0 + 4.0*gamma*Vm/l_int * (2.0 * n - 1.0);
+            (std::log(x2/x1)) * RT + deltaG0 * RT + 4.0*Vmgamma/l_int * (2.0 * n - 1.0);
         variable_list.set_value_term(4, deltaG_val);
-        variable_list.set_gradient_term(4, -n_grad * 8.0*gamma*Vm*l_int/(pi*pi));
+        variable_list.set_gradient_term(4, -n_grad * 8.0*Vmgamma*l_int/(pi*pi));
       }
     else if (solve_block_id == 2) // rxn
       {
-        constexpr double upper(1.0 - 1e-4);
-        constexpr double lower(1e-4);
+        constexpr double upper(1.0 - 1e-5);
+        constexpr double lower(1e-5);
         ScalarValue      n      = variable_list.template get_value<Scalar, Current>(0);
         ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
 
-        ScalarValue rxn_val = -n_grad.norm_square() * Vm * j0 * (-deltaG/RT);
+        ScalarValue rxn_val = -n_grad.norm() * Vmj0 * (-deltaG/RT);
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
       }
@@ -211,6 +235,11 @@ private:
     constexpr double pi = 3.14159265359;
     return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / l_int))));
   }
+
+  number deltaG0;
+  number D2;
+  number l_int;
+  
 };
 
 PRISMS_PF_END_NAMESPACE
