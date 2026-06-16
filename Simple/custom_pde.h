@@ -37,13 +37,14 @@ public:
   using PDEOperatorBase<dim, degree, number>::get_pf_tools;
 
   number RT            = 1073.15*8.314; // J
-  number D1            = 1.0;  // nm^2/s
+  number D1            = 5.0;  // nm^2/s
  // number D2            = 10.0;   // nm^2/s
  // number Vm            = 6.6e-6*1e27; // nm^3/mol
  // number deltaG0       = -4.0*RT;  // J
-  number Vmj0          = 6.6e-3*3.0; // (6.6e-6*1e27)*(3e-6*1e-18) mol/s/nm^2
+  number Vmj0          = 6.8*1.5e1; // 1.5e-2 mol/s/m^2
+                      // (6.6e-6*1e27)*(1.5e-2*1e-18) nm/s
  // number l_int         = 4.0;   // nm
-  number Vmgamma       = 2.0*6.6e3;   // (2.0*1e-18*6.6e-6*1e27) J/nm^2 
+  number Vmgamma       = 2.0*6.8e3; // 2 J/m^2  // (2.0*1e-18*6.6e-6*1e27) J*nm/mol 
 
   /**
    * @brief Constructor.
@@ -55,6 +56,8 @@ public:
       , deltaG0(get_user_inputs().user_constants.get_double("deltaG0"))
       , D2(get_user_inputs().user_constants.get_double("D2"))
       , l_int(get_user_inputs().user_constants.get_double("l_int"))
+      , x1_init(get_user_inputs().user_constants.get_double("x1_init"))
+      , x2_init(get_user_inputs().user_constants.get_double("x2_init"))
   {}
 
 private:
@@ -87,15 +90,15 @@ private:
     using std::sqrt;
     
     bool disk_IC = false;
-    bool sine_IC = false;
-    bool pseudo_1D = true;
+    bool sine_IC = true;
+    bool pseudo_1D = false;
     if (index == 0)
       {
         if (pseudo_1D)
           {
             double dist = x - lx/2.0;
             double phi = interface(dist);
-            scalar_value = max(min(phi, 1.0 - 1e-5), 1e-5);
+            scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
             return;
           }
         if (!sine_IC)
@@ -111,28 +114,32 @@ private:
         else
           {
             constexpr double pi  = 3.14159265359;
-            constexpr double amplitude  = 0.3;
-            double y_shift =
+
+            double ys = ly*7.0/8.0 - y
+              + std::sin(2.0*pi*(2.845 * x + 1.0)/lx) * 1.5 
+              + std::sin(2.0*pi*(7.123 * x      )/lx) * 0.75;
+         //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
+       /*     double y_shift =
                 (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
                 + sin( 9.0*pi * (x/lx + 0.)) * amplitude
           + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
                 * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
                 * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
-            double y_shifted = (y - ly * 0.9 - y_shift);
-            double phi      = interface(-y_shifted);
-
-            scalar_value = max(min(phi, 1.0 - 1e-5), 1e-5);
+            double y_shifted = (y - ly * 0.9 - y_shift); */
+            double phi      = interface(ys);
+          
+            scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
             return;
           }
       }
     if (index == 1)
       {
-        scalar_value = 0.2;
+        scalar_value = x1_init;
         return;
       }
     if (index == 2)
       {
-        scalar_value = 0.02;
+        scalar_value = x2_init;
         return;
       }
     if (index == 3)
@@ -239,6 +246,8 @@ private:
   number deltaG0;
   number D2;
   number l_int;
+  number x1_init;
+  number x2_init;
   
 };
 
