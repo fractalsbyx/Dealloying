@@ -172,7 +172,7 @@ def vtutopython(filename, scalars=[], vectors=[], resample=[], dim=2):
 
         return outputs
 
-outs = vtutopython("solutions_IC_1e6/solution_1000000.vtu",
+outs = vtutopython("solutions/solution_0870964.vtu",
                    scalars=['n','x1','x2'],dim=2)
 
 print(outs.keys())

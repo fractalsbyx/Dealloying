@@ -41,10 +41,10 @@ public:
  // number D2            = 10.0;   // nm^2/s
  // number Vm            = 6.6e-6*1e27; // nm^3/mol
  // number deltaG0       = -4.0*RT;  // J
-  number Vmj0          = 6.8*1.5e1; // 1.5e-2 mol/s/m^2
+  number Vmj0          = 7.0*1.5e1; // 1.5e-2 mol/s/m^2
                       // (6.6e-6*1e27)*(1.5e-2*1e-18) nm/s
  // number l_int         = 4.0;   // nm
-  number Vmgamma       = 2.0*6.8e3; // 2 J/m^2  // (2.0*1e-18*6.6e-6*1e27) J*nm/mol 
+  number Vmgamma       = 2.0*7.0e3; // 2 J/m^2  // (2.0*1e-18*6.6e-6*1e27) J*nm/mol 
 
   /**
    * @brief Constructor.
@@ -108,28 +108,39 @@ private:
                                     (y - center[1]) * (y - center[1]) +
                                     (z - center[2]) * (z - center[2]));
             double phi = interface(dist - radius);
-            scalar_value = max(min(phi, 1.0 - 1e-5), 1e-5);
+            scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
             return;
           }
         else
           {
             constexpr double pi  = 3.14159265359;
-
-            double ys = ly*7.0/8.0 - y
-              + std::sin(2.0*pi*(2.845 * x + 1.0)/lx) * 1.5 
-              + std::sin(2.0*pi*(7.123 * x      )/lx) * 0.75;
-         //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
-       /*     double y_shift =
-                (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
-                + sin( 9.0*pi * (x/lx + 0.)) * amplitude
-          + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
-                * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
-                * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
-            double y_shifted = (y - ly * 0.9 - y_shift); */
-            double phi      = interface(ys);
-          
-            scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
-            return;
+            if (dim == 2)
+              {
+                double ys = ly*7.0/8.0 - y
+                  + std::sin(2.0*pi*(2.845 * x + 1.0)/lx) * ly/40.0 
+                  + std::sin(2.0*pi*(7.123 * x      )/lx) * ly/80.0;
+            //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
+          /*     double y_shift =
+                    (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
+                    + sin( 9.0*pi * (x/lx + 0.)) * amplitude
+              + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
+                    * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
+                    * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
+                double y_shifted = (y - ly * 0.9 - y_shift); */
+                double phi      = interface(ys);
+              
+                scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
+                return;
+              }
+            else
+              {
+                double zs = lz*7.0/8.0 - z
+                  + std::sin(pi*(2.84 * x + 1.0)/lx) * std::sin(pi*(1.94 * y + 0.7)/ly) * lz/40.0
+                  + std::sin(pi*(7.12 * x      )/lx) * std::sin(pi*(4.921 * y     )/ly) * lz/80.0;
+                double phi      = interface(zs);
+                scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
+                return;
+              }
           }
       }
     if (index == 1)
@@ -204,8 +215,8 @@ private:
       }
     else if (solve_block_id == 2) // rxn
       {
-        constexpr double upper(1.0 - 1e-5);
-        constexpr double lower(1e-5);
+        constexpr double upper(1.0 - 1e-4);
+        constexpr double lower(1e-4);
         ScalarValue      n      = variable_list.template get_value<Scalar, Current>(0);
         ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
