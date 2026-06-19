@@ -44,7 +44,7 @@ public:
   number Vmj0          = 7.0*1.5e1; // 1.5e-2 mol/s/m^2
                       // (6.6e-6*1e27)*(1.5e-2*1e-18) nm/s
  // number l_int         = 4.0;   // nm
-  number Vmgamma       = 2.0*7.0e3; // 2 J/m^2  // (2.0*1e-18*6.6e-6*1e27) J*nm/mol 
+  number VmgammaRT       = 2.0*7.0e3/RT; // 2 J/m^2  // (2.0*1e-18*6.6e-6*1e27) J*nm/mol 
 
   /**
    * @brief Constructor.
@@ -117,8 +117,8 @@ private:
             if (dim == 2)
               {
                 double ys = ly*7.0/8.0 - y
-                  + std::sin(2.0*pi*(2.845 * x + 1.0)/lx) * ly/40.0 
-                  + std::sin(2.0*pi*(7.123 * x      )/lx) * ly/80.0;
+                  + std::cos(2.0*pi*(2.845 * x + 1.0)/lx) * ly/40.0 
+                  + std::cos(2.0*pi*(7.123 * x      )/lx) * ly/80.0;
             //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
           /*     double y_shift =
                     (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
@@ -209,9 +209,9 @@ private:
 
         // deltaG
         const ScalarValue deltaG_val =
-            (std::log(x2/x1)) * RT + deltaG0 * RT + 4.0*Vmgamma/l_int * (2.0 * n - 1.0);
+            (std::log(x2/x1)) + deltaG0 + 4.0*VmgammaRT/l_int * (2.0 * n - 1.0);
         variable_list.set_value_term(4, deltaG_val);
-        variable_list.set_gradient_term(4, -n_grad * 8.0*Vmgamma*l_int/(pi*pi));
+        variable_list.set_gradient_term(4, -n_grad * 8.0*VmgammaRT*l_int/(pi*pi));
       }
     else if (solve_block_id == 2) // rxn
       {
@@ -221,7 +221,7 @@ private:
         ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
 
-        ScalarValue rxn_val = -n_grad.norm() * Vmj0 * (-deltaG/RT);
+        ScalarValue rxn_val = -n_grad.norm_square() * 8.0 * l_int/(pi*pi) * Vmj0 * (-deltaG);
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
       }
