@@ -1,37 +1,26 @@
 subsection Rectangular mesh
-  set x size = 80.0
-  set y size = 80.0
-  set x subdivisions = 1
-  set y subdivisions = 1
+  set x size = 25.6
+  set y size = 25.6
+  set z size = 100.0
+  set periodic x = false
+  set periodic y = false
+  set periodic z = false
 end
 
 set global refinement = 8
-set max refinement    = 8
-set min refinement    = 3
-set mesh adaptivity   = true
-set remeshing period  = 800
+set mesh adaptivity   = false
 
-set time step = 1e-3
-set number steps = 100000
+set time step = 5e-8
+set number steps = 2000000
 
 subsection output
-  set condition = EQUAL_SPACING
-  set number = 50
-  set list = 1
-  set file type = pvtu
+  set condition = LOG_SPACING
+  set number = 200
+  set file type = vtu
 end
 
-subsection refinement criterion: 0
-  set type              = value
-
-  set value lower bound = 0.001
-  set value upper bound = 0.999
-  set variables         = n
+subsection boundary conditions: 0
+  set variables = x2
+  set conditions = Natural, Natural, Natural, Dirichlet
 end
 
-subsection refinement criterion: 1
-  set type              = gradient
-
-  set gradient lower bound = 0.0001
-  set variables         = x1
-end

@@ -7,7 +7,7 @@
 #include <prismspf/core/problem.h>
 #include <prismspf/core/solve_block.h>
 
-using namespace prisms;
+using namespace prismspf;
 
 int
 main(int argc, char *argv[])
