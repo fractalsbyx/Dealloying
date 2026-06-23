@@ -1,6 +1,6 @@
 subsection Rectangular mesh
-  set x size = 28.0
-  set y size = 28.0
+  set x size = 42.0
+  set y size = 42.0
   set z size = 10.0
   set periodic x = false
   set periodic y = false
@@ -12,7 +12,7 @@ end
 set global refinement = 8
 set mesh adaptivity   = false
 
-set time step = 1e-7
+set time step = 2e-6
 set number steps = 1000000
 
 subsection output
@@ -27,7 +27,10 @@ subsection boundary conditions: 0
 end
 
 set Model constant deltaG0 = -1.0, DOUBLE
-set Model constant D2 = 500, DOUBLE
+set Model constant D1 = 1, DOUBLE
+set Model constant D1s = 10, DOUBLE
+set Model constant D2 = 50, DOUBLE
+set Model constant j0 = 1.1e-2, DOUBLE
 set Model constant l_int = 1.5, DOUBLE
 set Model constant x1_init = 0.2, DOUBLE
 set Model constant x2_init = 0.05, DOUBLE

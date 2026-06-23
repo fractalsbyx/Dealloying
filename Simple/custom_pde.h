@@ -36,25 +36,20 @@ public:
   using PDEOperatorBase<dim, degree, number>::get_user_inputs;
   using PDEOperatorBase<dim, degree, number>::get_pf_tools;
 
-  number RT            = 1073.15*8.314; // J
-  number D1            = 5.0;  // nm^2/s
- // number D2            = 10.0;   // nm^2/s
- // number Vm            = 6.6e-6*1e27; // nm^3/mol
- // number deltaG0       = -4.0*RT;  // J
-  number Vmj0          = 7.0*1.5e1; // 1.5e-2 mol/s/m^2
-                      // (6.6e-6*1e27)*(1.5e-2*1e-18) nm/s
- // number l_int         = 4.0;   // nm
-  number VmgammaRT       = 2.0*7.0e3/RT; // 2 J/m^2  // (2.0*1e-18*6.6e-6*1e27) J*nm/mol 
+  number RT            = 1023.15*8.314; // J
+  number Vmfact        = 7.0e3; // number of m*m*nm sheets per mol
+  number gamma         = 2.0;   // J/m^2
 
   /**
    * @brief Constructor.
    */
   explicit CustomPDE(const UserInputParameters<dim> &_user_inputs, PhaseFieldTools<dim> &_pf_tools)
       : PDEOperatorBase<dim, degree, number>(_user_inputs, _pf_tools)
-   //   , m_well(get_user_inputs().user_constants.get_double("m_well"))
-   //   , kappa(get_user_inputs().user_constants.get_double("kappa"))
       , deltaG0(get_user_inputs().user_constants.get_double("deltaG0"))
+      , D1(get_user_inputs().user_constants.get_double("D1"))
+      , D1s(get_user_inputs().user_constants.get_double("D1s"))
       , D2(get_user_inputs().user_constants.get_double("D2"))
+      , j0(get_user_inputs().user_constants.get_double("j0"))
       , l_int(get_user_inputs().user_constants.get_double("l_int"))
       , x1_init(get_user_inputs().user_constants.get_double("x1_init"))
       , x2_init(get_user_inputs().user_constants.get_double("x2_init"))
@@ -116,7 +111,7 @@ private:
             constexpr double pi  = 3.14159265359;
             if (dim == 2)
               {
-                double ys = ly*7.0/8.0 - y
+                double ys = ly*3.0/4.0 - y
                   + std::cos(2.0*pi*(2.845 * x + 1.0)/lx) * ly/40.0 
                   + std::cos(2.0*pi*(7.123 * x      )/lx) * ly/80.0;
             //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
@@ -187,13 +182,13 @@ private:
         const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
 
-        // n
+        // n 
         variable_list.set_value_term(0, n + dt * rxn);
 
         // x1
         variable_list.set_value_term(1,
-                                     x1 + dt * (D1 * x1_grad * n_grad + rxn)/ n);
-        variable_list.set_gradient_term(1, dt * (-D1 * x1_grad));
+                                     x1 + dt * (D1 * (1.0 + 2.0/l_int *(1.0 - n)*D1s) * x1_grad * n_grad + rxn)/ n);
+        variable_list.set_gradient_term(1, dt * (-D1 * (1.0 + 2.0/l_int *(1.0 - n)*D1s) * x1_grad));
 
         // x2
         variable_list.set_value_term(
@@ -209,9 +204,9 @@ private:
 
         // deltaG
         const ScalarValue deltaG_val =
-            (std::log(x2/x1)) + deltaG0 + 4.0*VmgammaRT/l_int * (2.0 * n - 1.0);
+            std::log(x2*(1.0-x1)/(x1*(1.0-x2)))  + deltaG0 + 4.0*Vmfact*gamma/RT/l_int * (2.0 * n - 1.0);
         variable_list.set_value_term(4, deltaG_val);
-        variable_list.set_gradient_term(4, -n_grad * 8.0*VmgammaRT*l_int/(pi*pi));
+        variable_list.set_gradient_term(4, -n_grad * 8.0*Vmfact*gamma/RT*l_int/(pi*pi));
       }
     else if (solve_block_id == 2) // rxn
       {
@@ -221,7 +216,10 @@ private:
         ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
 
-        ScalarValue rxn_val = -n_grad.norm_square() * 8.0 * l_int/(pi*pi) * Vmj0 * (-deltaG);
+        ScalarValue rxn_val = -n_grad.norm_square() * n * (1.0 - n) * (128.0 * l_int/(pi*pi)/3.0) * Vmfact * j0 * (-deltaG);
+   // alternative 'localization functions' with worse time-step restrictions
+   //     ScalarValue rxn_val = -n_grad.norm() * Vmj0 * (-deltaG);
+   //     ScalarValue rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) * Vmj0 * (-deltaG);
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
       }
@@ -255,7 +253,10 @@ private:
   }
 
   number deltaG0;
+  number D1;
+  number D1s;
   number D2;
+  number j0;
   number l_int;
   number x1_init;
   number x2_init;
