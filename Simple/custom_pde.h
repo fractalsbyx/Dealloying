@@ -36,23 +36,23 @@ public:
   using PDEOperatorBase<dim, degree, number>::get_user_inputs;
   using PDEOperatorBase<dim, degree, number>::get_pf_tools;
 
-  number RT            = 1023.15*8.314; // J
-  number Vmfact        = 7.0e3; // number of m*m*nm sheets per mol
-  number gamma         = 2.0;   // J/m^2
+  number RT     = 1023.15 * 8.314; // J
+  number Vmfact = 7.0e3;           // number of m*m*nm sheets per mol
+  number gamma  = 2.0;             // J/m^2
 
   /**
    * @brief Constructor.
    */
   explicit CustomPDE(const UserInputParameters<dim> &_user_inputs, PhaseFieldTools<dim> &_pf_tools)
-      : PDEOperatorBase<dim, degree, number>(_user_inputs, _pf_tools)
-      , deltaG0(get_user_inputs().user_constants.get_double("deltaG0"))
-      , D1(get_user_inputs().user_constants.get_double("D1"))
-      , D1s(get_user_inputs().user_constants.get_double("D1s"))
-      , D2(get_user_inputs().user_constants.get_double("D2"))
-      , j0(get_user_inputs().user_constants.get_double("j0"))
-      , l_int(get_user_inputs().user_constants.get_double("l_int"))
-      , x1_init(get_user_inputs().user_constants.get_double("x1_init"))
-      , x2_init(get_user_inputs().user_constants.get_double("x2_init"))
+      : PDEOperatorBase<dim, degree, number>(_user_inputs, _pf_tools),
+        deltaG0(get_user_inputs().user_constants.get_double("deltaG0")),
+        D1(get_user_inputs().user_constants.get_double("D1")),
+        D1s(get_user_inputs().user_constants.get_double("D1s")),
+        D2(get_user_inputs().user_constants.get_double("D2")),
+        j0(get_user_inputs().user_constants.get_double("j0")),
+        l_int(get_user_inputs().user_constants.get_double("l_int")),
+        x1_init(get_user_inputs().user_constants.get_double("x1_init")),
+        x2_init(get_user_inputs().user_constants.get_double("x2_init"))
   {}
 
 private:
@@ -81,58 +81,60 @@ private:
     using std::max;
     using std::min;
     using std::sin;
-    using std::tanh;
     using std::sqrt;
-    
-    bool disk_IC = false;
-    bool sine_IC = true;
+    using std::tanh;
+
+    bool disk_IC   = false;
+    bool sine_IC   = true;
     bool pseudo_1D = false;
     if (index == 0)
       {
         if (pseudo_1D)
           {
-            double dist = x - lx/2.0;
-            double phi = interface(dist);
+            double dist  = x - lx / 2.0;
+            double phi   = interface(dist);
             scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
             return;
           }
         if (!sine_IC)
           {
             double radius = lx * 0.25;
-            double dist = std::sqrt((x - center[0]) * (x - center[0]) +
-                                    (y - center[1]) * (y - center[1]) +
-                                    (z - center[2]) * (z - center[2]));
-            double phi = interface(dist - radius);
+            double dist =
+                std::sqrt((x - center[0]) * (x - center[0]) + (y - center[1]) * (y - center[1]) +
+                          (z - center[2]) * (z - center[2]));
+            double phi   = interface(dist - radius);
             scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
             return;
           }
         else
           {
-            constexpr double pi  = 3.14159265359;
+            constexpr double pi = 3.14159265359;
             if (dim == 2)
               {
-                double ys = ly*3.0/4.0 - y
-                  + std::cos(2.0*pi*(2.845 * x + 1.0)/lx) * ly/40.0 
-                  + std::cos(2.0*pi*(7.123 * x      )/lx) * ly/80.0;
-            //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
-          /*     double y_shift =
-                    (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
-                    + sin( 9.0*pi * (x/lx + 0.)) * amplitude
-              + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
-                    * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
-                    * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
-                double y_shifted = (y - ly * 0.9 - y_shift); */
-                double phi      = interface(ys);
-              
+                double ys = ly * 3.0 / 4.0 - y +
+                            std::cos(2.0 * pi * (2.845 * x + 1.0) / lx) * ly / 40.0 +
+                            std::cos(2.0 * pi * (7.123 * x) / lx) * ly / 80.0;
+                //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
+                /*     double y_shift =
+                          (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
+                          + sin( 9.0*pi * (x/lx + 0.)) * amplitude
+                    + sin( 13.0*pi * (x/lx + 0.9)) * amplitude )
+                          * 0.5*(1.0 + tanh(( x - lx * 0.04) / (lx * 0.04)))
+                          * 0.5*(1.0 + tanh((-x + lx * 0.96) / (lx * 0.04)));
+                      double y_shifted = (y - ly * 0.9 - y_shift); */
+                double phi = interface(ys);
+
                 scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
                 return;
               }
             else
               {
-                double zs = lz*7.0/8.0 - z
-                  + std::sin(pi*(2.84 * x + 1.0)/lx) * std::sin(pi*(1.94 * y + 0.7)/ly) * lz/40.0
-                  + std::sin(pi*(7.12 * x      )/lx) * std::sin(pi*(4.921 * y     )/ly) * lz/80.0;
-                double phi      = interface(zs);
+                double zs =
+                    lz * 7.0 / 8.0 - z +
+                    std::sin(pi * (2.84 * x + 1.0) / lx) * std::sin(pi * (1.94 * y + 0.7) / ly) *
+                        lz / 40.0 +
+                    std::sin(pi * (7.12 * x) / lx) * std::sin(pi * (4.921 * y) / ly) * lz / 80.0;
+                double phi   = interface(zs);
                 scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
                 return;
               }
@@ -171,7 +173,7 @@ private:
               [[maybe_unused]] unsigned int                         solve_block_id) const override
   {
     constexpr double pi = 3.14159265359;
-    const number dt = sim_timer.get_timestep();
+    const number     dt = sim_timer.get_timestep();
     if (solve_block_id == 0) // n, x
       {
         const ScalarValue n       = variable_list.template get_value<Scalar, OldOne>(0);
@@ -182,17 +184,17 @@ private:
         const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
 
-        // n 
+        // n
         variable_list.set_value_term(0, n + dt * rxn);
 
         // x1
-        variable_list.set_value_term(1,
-                                     x1 + dt * (D1 * (1.0 + 8.0/l_int *(1.0 - n)*D1s) * x1_grad * n_grad + rxn)/ n);
-        variable_list.set_gradient_term(1, dt * (-D1 * (1.0 + 8.0/l_int *(1.0 - n)*D1s) * x1_grad));
+        variable_list.set_value_term(
+            1, x1 + dt * (D1 * (1.0 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad * n_grad + rxn) / n);
+        variable_list.set_gradient_term(
+            1, dt * (-D1 * (1.0 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad));
 
         // x2
-        variable_list.set_value_term(
-            2, x2 + dt * (-D2 * x2_grad * n_grad - rxn )/(1.0 - n));
+        variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn) / (1.0 - n));
         variable_list.set_gradient_term(2, dt * (-D2 * x2_grad));
       }
     else if (solve_block_id == 1) // delta G
@@ -203,10 +205,20 @@ private:
         const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(2);
 
         // deltaG
+        const Dual<ScalarValue, 1> x1_dual(x1, dealii::Tensor<1, 1, ScalarValue>({1.0}));
+        const Dual<ScalarValue, 1> x2_dual(x2, dealii::Tensor<1, 1, ScalarValue>({1.0}));
+        const Dual<ScalarValue, 1> G_a = G_alpha(x1_dual);
+        const Dual<ScalarValue, 1> G_b = G_beta(x2_dual);
+
+        ScalarValue       mu1_chem = G_a.val + (1.0 - x1) * G_a.grad[0];
+        ScalarValue       mu2_chem = G_b.val + (1.0 - x2) * G_b.grad[0];
         const ScalarValue deltaG_val =
-            std::log(x2*(1.0-x1)/(x1*(1.0-x2)))  + deltaG0 + 4.0*Vmfact*gamma/RT/l_int * (2.0 * n - 1.0);
+            (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
+
+        // const ScalarValue deltaG_val = std::log(x2 * (1.0 - x1) / (x1 * (1.0 - x2))) + deltaG0 +
+        //                                4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
         variable_list.set_value_term(4, deltaG_val);
-        variable_list.set_gradient_term(4, -n_grad * 8.0*Vmfact*gamma/RT*l_int/(pi*pi));
+        variable_list.set_gradient_term(4, -n_grad * 8.0 * Vmfact * gamma / RT * l_int / (pi * pi));
       }
     else if (solve_block_id == 2) // rxn
       {
@@ -216,13 +228,37 @@ private:
         ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
 
-        ScalarValue rxn_val = -n_grad.norm_square() * n * (1.0 - n) * (128.0 * l_int/(pi*pi)/3.0) * Vmfact * j0 * (-deltaG);
-   // alternative 'localization functions' with worse time-step restrictions
-   //     ScalarValue rxn_val = -n_grad.norm() * Vmj0 * (-deltaG);
-   //     ScalarValue rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) * Vmj0 * (-deltaG);
+        ScalarValue rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
+                              (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
+        // alternative 'localization functions' with worse time-step restrictions
+        //     ScalarValue rxn_val = -n_grad.norm() * Vmj0 * (-deltaG);
+        //     ScalarValue rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) * Vmj0 *
+        //     (-deltaG);
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
       }
+  }
+
+  template <typename real>
+  real
+  G_alpha(const real &xB) const
+  {
+    using std::log;
+    real xA = 1.0 - xB;
+    real G(deltaG0 * RT);
+    G += RT * (xB * log(xB) + xA * log(xA));
+    return G;
+  }
+
+  template <typename real>
+  real
+  G_beta(const real &xB) const
+  {
+    using std::log;
+    real xA = 1.0 - xB;
+    real G(0.0);
+    G += RT * (xB * log(xB) + xA * log(xA));
+    return G;
   }
 
 private:
@@ -247,7 +283,7 @@ private:
   {
     using std::max;
     using std::min;
-    using std::sin; 
+    using std::sin;
     constexpr double pi = 3.14159265359;
     return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / l_int))));
   }
@@ -260,7 +296,6 @@ private:
   number l_int;
   number x1_init;
   number x2_init;
-  
 };
 
 PRISMS_PF_END_NAMESPACE
