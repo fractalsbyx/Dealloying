@@ -2,15 +2,18 @@
 #  CMake script for the PRISMS-PF applications
 ##
 
-cmake_minimum_required(VERSION 3.28)
-cmake_policy(VERSION 3.28)
+cmake_minimum_required(VERSION 3.25)
+cmake_policy(VERSION 3.25)
+
+# Name the application
+set(APPLICATION_NAME "dealloying_simple")
 
 # Create a project for the application
-project(my_app CXX)
+project(${APPLICATION_NAME} CXX)
 
-# Set the build type to release if not specified
+# Set the build type to debug is not specified
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
 endif()
 
 # Export compile commands for IDEs
@@ -25,14 +28,23 @@ find_package(
     $ENV{PRISMS_PF_DIR}
 )
 
+# Include the headers in this repo
 include_directories(${CMAKE_SOURCE_DIR}/../include)
 
 # Declare the application executable
-add_executable(main)
+add_executable(${APPLICATION_NAME})
+
+# Rename the output executable to main
+set_target_properties(
+  ${APPLICATION_NAME}
+  PROPERTIES
+    OUTPUT_NAME
+      main
+)
 
 # Add sources
 target_sources(
-  main
+  ${APPLICATION_NAME}
   PRIVATE
     main.cc
     custom_pde.h
@@ -40,9 +52,9 @@ target_sources(
 
 # Require C++20
 # TODO: Remove this
-target_compile_features(main PRIVATE cxx_std_20)
+target_compile_features(${APPLICATION_NAME} PRIVATE cxx_std_20)
 set_target_properties(
-  main
+  ${APPLICATION_NAME}
   PROPERTIES
     CXX_STANDARD
       20
@@ -53,9 +65,12 @@ set_target_properties(
 )
 
 # Link PRISMS-PF
+# If we're in Debug configuration and PRISMS_PF_BUILD_TYPE is DebugRelease, link to the prisms_pf_debug target,
+# which is only available in prisms_pf DebugRelease configuration.
+# Otherwise link to the prisms_pf target, which may be debug or release
 target_link_libraries(
-  main
+  ${APPLICATION_NAME}
   PRIVATE
-    $<$<CONFIG:Debug>:PRISMS-PF::prisms_pf_debug>
-    $<$<CONFIG:Release>:PRISMS-PF::prisms_pf_release>
+    $<IF:$<AND:$<CONFIG:Debug>,$<STREQUAL:${PRISMS_PF_BUILD_TYPE},DebugRelease>>,PRISMS-PF::prisms_pf_debug,
+    PRISMS-PF::prisms_pf>
 )
