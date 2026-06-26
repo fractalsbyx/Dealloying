@@ -9,6 +9,8 @@
 #include <dual.h>
 #include <variation.h>
 
+#include <ni-cr.h>
+
 PRISMS_PF_BEGIN_NAMESPACE
 
 template <unsigned int dim, unsigned int degree, typename number>
@@ -36,9 +38,23 @@ public:
   using PDEOperatorBase<dim, degree, number>::get_user_inputs;
   using PDEOperatorBase<dim, degree, number>::get_pf_tools;
 
+  // Hard coded
   number RT     = 1023.15 * 8.314; // J
   number Vmfact = 7.0e3;           // number of m*m*nm sheets per mol
   number gamma  = 2.0;             // J/m^2
+
+  // Parameter file
+  number deltaG0;
+  number D1;
+  number D1s;
+  number D2;
+  number j0;
+  number l_int;
+  number x1_init;
+  number x2_init;
+
+  // NiCr Thermo
+  NiCrThermo::Isothermal nicr_energy;
 
   /**
    * @brief Constructor.
@@ -53,7 +69,9 @@ public:
         l_int(get_user_inputs().user_constants.get_double("l_int")),
         x1_init(get_user_inputs().user_constants.get_double("x1_init")),
         x2_init(get_user_inputs().user_constants.get_double("x2_init"))
-  {}
+  {
+    nicr_energy.set_temperature(RT / NiCrThermo::R);
+  }
 
 private:
   void
@@ -243,6 +261,7 @@ private:
   real
   G_alpha(const real &xB) const
   {
+    // return nicr_energy.G_fcc(xB);
     using std::log;
     real xA = 1.0 - xB;
     real G(deltaG0 * RT);
@@ -287,15 +306,6 @@ private:
     constexpr double pi = 3.14159265359;
     return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / l_int))));
   }
-
-  number deltaG0;
-  number D1;
-  number D1s;
-  number D2;
-  number j0;
-  number l_int;
-  number x1_init;
-  number x2_init;
 };
 
 PRISMS_PF_END_NAMESPACE
