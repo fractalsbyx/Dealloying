@@ -2,8 +2,6 @@
 
 #include <cmath>
 
-// WARNING: This was vibe-coded and hasn't been tested. Use at own risk.
-
 // Thermodynamic functions for the Ni-Cr FCC system.
 // Data from Tang & Hallstedt 2016:
 // https://www.sciencedirect.com/science/article/pii/S0364591616301638
@@ -73,27 +71,25 @@ G_fcc(double T, Real xNi, Real xCr)
   Real Gxs = xNi * xCr * (L_fcc(0, T) + L_fcc(1, T) * (xCr - xNi));
   return G0_Ni(T) * xNi + Gfcc_Cr(T) * xCr + R * T * (xNi * log(xNi) + xCr * log(xCr)) + Gxs;
 }
-
+/*
 // -----------------------------------------------------------------------------
 // Chemical potentials  [J/mol]
 // -----------------------------------------------------------------------------
 
 template <typename Real>
-Real
-mu_Ni(double T, Real xNi, Real xCr)
+Real mu_Ni(double T, Real xNi, Real xCr)
 {
-  using std::log;
-  Real mu_Gxs = L_fcc(0, T) * xCr + L_fcc(1, T) * xCr * (xCr - 2.0 * xNi);
-  return G0_Ni(T) + R * T * (log(xNi) + 1.0) + mu_Gxs;
+    using std::log;
+    Real mu_Gxs = L_fcc(0,T)*xCr + L_fcc(1,T)*xCr*(xCr - 2.0*xNi);
+    return G0_Ni(T) + R*T*(log(xNi) + 1.0) + mu_Gxs;
 }
 
 template <typename Real>
-Real
-mu_Cr(double T, Real xNi, Real xCr)
+Real mu_Cr(double T, Real xNi, Real xCr)
 {
-  using std::log;
-  Real mu_Gxs = L_fcc(0, T) * xNi + L_fcc(1, T) * xNi * (2.0 * xCr - xNi);
-  return Gfcc_Cr(T) + R * T * (log(xCr) + 1.0) + mu_Gxs;
+    using std::log;
+    Real mu_Gxs = L_fcc(0,T)*xNi + L_fcc(1,T)*xNi*(2.0*xCr - xNi);
+    return Gfcc_Cr(T) + R*T*(log(xCr) + 1.0) + mu_Gxs;
 }
 
 // -----------------------------------------------------------------------------
@@ -101,31 +97,111 @@ mu_Cr(double T, Real xNi, Real xCr)
 // -----------------------------------------------------------------------------
 
 template <typename Real>
-Real
-mu_Ni_dxNi(double T, Real xNi, Real xCr)
+Real mu_Ni_dxNi(double T, Real xNi, Real xCr)
 {
-  return R * T / xNi + L_fcc(1, T) * (-2.0 * xCr);
+    return R*T/xNi + L_fcc(1,T)*(-2.0*xCr);
 }
 
 template <typename Real>
-Real
-mu_Ni_dxCr(double T, Real xNi, Real xCr)
+Real mu_Ni_dxCr(double T, Real xNi, Real xCr)
 {
-  return L_fcc(0, T) + L_fcc(1, T) * (2.0 * xCr - 2.0 * xNi);
+    return L_fcc(0,T) + L_fcc(1,T)*(2.0*xCr - 2.0*xNi);
 }
 
 template <typename Real>
-Real
-mu_Cr_dxNi(double T, Real xNi, Real xCr)
+Real mu_Cr_dxNi(double T, Real xNi, Real xCr)
 {
-  return L_fcc(0, T) + L_fcc(1, T) * (2.0 * xCr - 2.0 * xNi);
+    return L_fcc(0,T) + L_fcc(1,T)*(2.0*xCr - 2.0*xNi);
 }
 
 template <typename Real>
-Real
-mu_Cr_dxCr(double T, Real xNi, Real xCr)
+Real mu_Cr_dxCr(double T, Real xNi, Real xCr)
 {
-  return R * T / xCr + L_fcc(1, T) * (2.0 * xNi);
-}
+    return R*T/xCr + L_fcc(1,T)*(2.0*xNi);
+} */
+
+// -----------------------------------------------------------------------------
+// Isothermal helper — call set_temperature() once, then evaluate functions
+// that take only xCr (xNi = 1 - xCr internally).
+// -----------------------------------------------------------------------------
+
+template <typename Real>
+class Isothermal
+{
+public:
+  void
+  set_temperature(double T)
+  {
+    _T    = T;
+    _RT   = R * T;
+    _G0Ni = G0_Ni(T);
+    _GCr  = Gfcc_Cr(T);
+    _L0   = L_fcc(0, T);
+    _L1   = L_fcc(1, T);
+  }
+
+  double
+  temperature() const
+  {
+    return _T;
+  }
+
+  Real
+  G_fcc(Real xCr) const
+  {
+    using std::log;
+    Real xNi = 1.0 - xCr;
+    Real Gxs = xNi * xCr * (_L0 + _L1 * (xCr - xNi));
+    return _G0Ni * xNi + _GCr * xCr + _RT * (xNi * log(xNi) + xCr * log(xCr)) + Gxs;
+  }
+
+  /*     Real mu_Ni(Real xCr) const
+      {
+          using std::log;
+          Real xNi = 1.0 - xCr;
+          Real mu_Gxs = _L0*xCr + _L1*xCr*(xCr - 2.0*xNi);
+          return _G0Ni + _RT*(log(xNi) + 1.0) + mu_Gxs;
+      }
+
+      Real mu_Cr(Real xCr) const
+      {
+          using std::log;
+          Real xNi = 1.0 - xCr;
+          Real mu_Gxs = _L0*xNi + _L1*xNi*(2.0*xCr - xNi);
+          return _GCr + _RT*(log(xCr) + 1.0) + mu_Gxs;
+      }
+
+      Real mu_Ni_dxNi(Real xCr) const
+      {
+          Real xNi = 1.0 - xCr;
+          return _RT/xNi + _L1*(-2.0*xCr);
+      }
+
+      Real mu_Ni_dxCr(Real xCr) const
+      {
+          Real xNi = 1.0 - xCr;
+          return _L0 + _L1*(2.0*xCr - 2.0*xNi);
+      }
+
+      Real mu_Cr_dxNi(Real xCr) const
+      {
+          Real xNi = 1.0 - xCr;
+          return _L0 + _L1*(2.0*xCr - 2.0*xNi);
+      }
+
+      Real mu_Cr_dxCr(Real xCr) const
+      {
+          Real xNi = 1.0 - xCr;
+          return _RT/xCr + _L1*(2.0*xNi);
+      } */
+
+private:
+  double _T    = 0.0;
+  double _RT   = 0.0;
+  double _G0Ni = 0.0;
+  double _GCr  = 0.0;
+  double _L0   = 0.0;
+  double _L1   = 0.0;
+};
 
 } // namespace NiCrThermo
