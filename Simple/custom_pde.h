@@ -182,7 +182,7 @@ private:
                 [[maybe_unused]] number                   &scalar_value,
                 [[maybe_unused]] number                   &vector_component_value) const override
   {
-    scalar_value = 0.05;
+    scalar_value = x2_init;
   }
 
   void
