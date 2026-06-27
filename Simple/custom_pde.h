@@ -207,9 +207,11 @@ private:
 
         // x1
         variable_list.set_value_term(
-            1, x1 + dt * (D1 * (1.0 + 8.0 / l_int * (1.0 - n) * (D1s-D1) ) * x1_grad * n_grad + rxn) / n);
+            1,
+            x1 + dt * (D1 * (1.0 + 8.0 / l_int * (1.0 - n) * (D1s - D1)) * x1_grad * n_grad + rxn) /
+                     n);
         variable_list.set_gradient_term(
-            1, dt * (-D1 * (1.0 + 8.0 / l_int * (1.0 - n) * (D1s-D1)) * x1_grad));
+            1, dt * (-D1 * (1.0 + 8.0 / l_int * (1.0 - n) * (D1s - D1)) * x1_grad));
 
         // x2
         variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn) / (1.0 - n));
@@ -264,7 +266,7 @@ private:
     // return nicr_energy.G_fcc(xB);
     using std::log;
     real xA = 1.0 - xB;
-    real G(deltaG0 * RT);
+    real G(0.0);
     G += RT * (xB * log(xB) + xA * log(xA));
     return G;
   }
@@ -275,7 +277,7 @@ private:
   {
     using std::log;
     real xA = 1.0 - xB;
-    real G(0.0);
+    real G(deltaG0 * RT);
     G += RT * (xB * log(xB) + xA * log(xA));
     return G;
   }
