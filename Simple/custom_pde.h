@@ -52,6 +52,7 @@ public:
   number l_int;
   number x1_init;
   number x2_init;
+  number epsilon;        // small number to avoid division by zero
 
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
@@ -68,7 +69,8 @@ public:
         j0(get_user_inputs().user_constants.get_double("j0")),
         l_int(get_user_inputs().user_constants.get_double("l_int")),
         x1_init(get_user_inputs().user_constants.get_double("x1_init")),
-        x2_init(get_user_inputs().user_constants.get_double("x2_init"))
+        x2_init(get_user_inputs().user_constants.get_double("x2_init")),
+        epsilon(get_user_inputs().user_constants.get_double("epsilon"))
   {
     nicr_energy.set_temperature(RT / NiCrThermo::R);
   }
@@ -111,7 +113,7 @@ private:
           {
             double dist  = x - lx / 2.0;
             double phi   = interface(dist);
-            scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
+            scalar_value = max(min(phi, 1.0 - epsilon), epsilon);
             return;
           }
         if (!sine_IC)
@@ -121,7 +123,7 @@ private:
                 std::sqrt((x - center[0]) * (x - center[0]) + (y - center[1]) * (y - center[1]) +
                           (z - center[2]) * (z - center[2]));
             double phi   = interface(dist - radius);
-            scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
+            scalar_value = max(min(phi, 1.0 - epsilon), epsilon);
             return;
           }
         else
@@ -142,7 +144,7 @@ private:
                       double y_shifted = (y - ly * 0.9 - y_shift); */
                 double phi = interface(ys);
 
-                scalar_value = max(min(phi, 1.0 - 1e-4), 1e-4);
+                scalar_value = max(min(phi, 1.0 - epsilon), epsilon);
                 return;
               }
             else
@@ -227,23 +229,23 @@ private:
         // deltaG
         const Dual<ScalarValue, 1> x1_dual(x1, dealii::Tensor<1, 1, ScalarValue>({1.0}));
         const Dual<ScalarValue, 1> x2_dual(x2, dealii::Tensor<1, 1, ScalarValue>({1.0}));
-        const Dual<ScalarValue, 1> G_a = G_alpha(x1_dual);
-        const Dual<ScalarValue, 1> G_b = G_beta(x2_dual);
+        const Dual<ScalarValue, 1> Gm_a = Gm_alpha(x1_dual);
+        const Dual<ScalarValue, 1> Gm_b = Gm_beta(x2_dual);
 
-        ScalarValue       mu1_chem = G_a.val + (1.0 - x1) * G_a.grad[0];
-        ScalarValue       mu2_chem = G_b.val + (1.0 - x2) * G_b.grad[0];
+        ScalarValue       mu1_chem = Gm_a.val + (1.0 - x1) * Gm_a.grad[0];
+        ScalarValue       mu2_chem = Gm_b.val + (1.0 - x2) * Gm_b.grad[0];
         const ScalarValue deltaG_val =
             (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
 
-        // const ScalarValue deltaG_val = std::log(x2 * (1.0 - x1) / (x1 * (1.0 - x2))) + deltaG0 +
+        // const ScalarValue deltaG_val = std::log(x2 / x1 ) + deltaG0 +
         //                                4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
         variable_list.set_value_term(4, deltaG_val);
         variable_list.set_gradient_term(4, -n_grad * 8.0 * Vmfact * gamma / RT * l_int / (pi * pi));
       }
     else if (solve_block_id == 2) // rxn
       {
-        constexpr double upper(1.0 - 1e-4);
-        constexpr double lower(1e-4);
+        number upper(1.0 - epsilon);
+        number lower(epsilon);
         ScalarValue      n      = variable_list.template get_value<Scalar, Current>(0);
         ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
@@ -261,7 +263,7 @@ private:
 
   template <typename real>
   real
-  G_alpha(const real &xB) const
+  Gm_alpha(const real &xB) const
   {
     // return nicr_energy.G_fcc(xB);
     using std::log;
@@ -273,7 +275,7 @@ private:
 
   template <typename real>
   real
-  G_beta(const real &xB) const
+  Gm_beta(const real &xB) const
   {
     using std::log;
     real xA = 1.0 - xB;

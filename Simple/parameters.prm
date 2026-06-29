@@ -34,6 +34,7 @@ set Model constant j0 = 1.1e-2, DOUBLE
 set Model constant l_int = 1.5, DOUBLE
 set Model constant x1_init = 0.2, DOUBLE
 set Model constant x2_init = 0.05, DOUBLE
+set Model constant epsilon = 1e-4, DOUBLE
 
 set read initial conditions from file = false
 
