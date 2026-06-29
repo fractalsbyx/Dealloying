@@ -52,7 +52,15 @@ main(int argc, char *argv[])
 
   std::vector<SolveBlock> solve_blocks({main_fields, deltaG, rxn, pp});
 
-  UserInputParameters<dim>       user_inputs(cli_options.get_parameters_filename());
+  UserInputParameters<dim> user_inputs(cli_options.get_parameters_filename());
+  for (const auto &name : {"x1", "x2"})
+    {
+      double domain_size = user_inputs.spatial_discretization.rectangular_mesh.size.norm();
+      user_inputs.spatial_discretization.refinement_criteria[name].criterion =
+          RefinementFlags::Gradient;
+      user_inputs.spatial_discretization.refinement_criteria[name].gradient_lower_bound =
+          0.1 / domain_size;
+    }
   PhaseFieldTools<dim>           pf_tools;
   CustomPDE<dim, degree, double> pde_operator(user_inputs, pf_tools);
   Problem<dim, degree, double>   problem(fields, solve_blocks, user_inputs, pf_tools, pde_operator);
