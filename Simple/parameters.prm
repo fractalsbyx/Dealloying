@@ -47,13 +47,6 @@ subsection refinement criterion: 0
   set variables         = n
 end
 
-#subsection refinement criterion: 1
-#  set type              = gradient
-#
-#  set gradient lower bound = 0.0001
-#  set variables         = x1, x2
-#end
-
 set read initial conditions from file = false
 
 subsection initial condition file 1
