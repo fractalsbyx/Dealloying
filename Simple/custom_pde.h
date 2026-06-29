@@ -291,6 +291,19 @@ private:
     return G;
   }
 
+  void
+  pre_solve_block([[maybe_unused]] SolveContext<dim, degree, number> &solve_context,
+                  [[maybe_unused]] unsigned int                       solver_id) override
+  {
+    // solve_context.get_simulation_timer().get_increment();
+    // solve_context.get_user_inputs().spatial_discretization.has_adaptivity;
+  }
+
+  void
+  post_solve_block([[maybe_unused]] SolveContext<dim, degree, number> &solve_context,
+                   [[maybe_unused]] unsigned int                       solver_id) override
+  {}
+
 private:
   template <typename num>
   void
