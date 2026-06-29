@@ -52,7 +52,7 @@ public:
   number l_int;
   number x1_init;
   number x2_init;
-  number epsilon;        // small number to avoid division by zero
+  number epsilon; // small number to avoid division by zero
 
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
@@ -244,11 +244,11 @@ private:
       }
     else if (solve_block_id == 2) // rxn
       {
-        number upper(1.0 - epsilon);
-        number lower(epsilon);
-        ScalarValue      n      = variable_list.template get_value<Scalar, Current>(0);
-        ScalarGrad       n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        ScalarValue      deltaG = variable_list.template get_value<Scalar, Current>(4);
+        number      upper(1.0 - epsilon);
+        number      lower(epsilon);
+        ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
+        ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
+        ScalarValue deltaG = variable_list.template get_value<Scalar, Current>(4);
 
         ScalarValue rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
                               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
@@ -258,6 +258,13 @@ private:
         //     (-deltaG);
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
+      }
+    else if (solve_block_id == 3) // pp
+      {
+        const ScalarValue n  = variable_list.template get_value<Scalar, Current>(0);
+        const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(1);
+        const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
+        variable_list.set_value_term(5, n * x1 + (1.0 - n) * x2);
       }
   }
 
